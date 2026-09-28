@@ -35,9 +35,9 @@ namespace SheetAreaSelector
             try
             {
                 // 1. Прямая ссылка на файл с версией (например на GitHub)
-                string versionUrl = "https://raw.githubusercontent.com/Asesu23/AutoCADPluginSetup/main/version.txt";
+                string versionUrl = "https://github.com/Asesu23/AutoCADPlugin/releases/latest/download/version.txt";
                 // 2. Прямая ссылка на ваш инсталлятор .exe
-                string setupUrl = "https://raw.githubusercontent.com/Asesu23/AutoCADPluginSetup/main/AutoCADPlugin_Setup.exe";
+                string setupUrl = "https://github.com/Asesu23/AutoCADPlugin/releases/latest/download/AutoCADPlugin_Setup.exe";
 
                 using (WebClient client = new WebClient())
                 {

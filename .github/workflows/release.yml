@@ -1,0 +1,62 @@
+name: Build and release
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        env:
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if ($env:REF -like 'refs/tags/v*') {
+            $v = [version]$env:REF_NAME.TrimStart('v')
+          } else {
+            $v = [version]'0.0.0.0'
+          }
+          $full = '{0}.{1}.{2}.{3}' -f $v.Major, $v.Minor, [Math]::Max($v.Build, 0), [Math]::Max($v.Revision, 0)
+          "value=$full" >> $env:GITHUB_OUTPUT
+
+      - name: Build plugin
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+          & $msbuild AutoCADPlugin/AutoCADPlugin.csproj /restore /p:Configuration=Release /p:Platform=x64 /p:Version=$env:VERSION /p:AssemblyVersion=$env:VERSION /p:FileVersion=$env:VERSION /v:minimal
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" installer/stp.iss
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          [System.IO.File]::WriteAllText("$PWD/installer/Output/version.txt", $env:VERSION)
+          gh release create $env:TAG installer/Output/AutoCADPlugin_Setup.exe installer/Output/version.txt --title $env:TAG --generate-notes
