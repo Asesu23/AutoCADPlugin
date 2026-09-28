@@ -58,4 +58,4 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           [System.IO.File]::WriteAllText("$PWD/installer/Output/version.txt", $env:TAG.TrimStart('v'))
-          gh release create $env:TAG installer/Output/AutoCADPlugin_Setup.exe installer/Output/version.txt --title $env:TAG --generate-notes
+          gh release create $env:TAG installer/Output/Jpegger_Setup.exe installer/Output/version.txt --title "Jpegger $env:TAG" --generate-notes

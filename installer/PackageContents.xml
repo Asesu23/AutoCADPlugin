@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ApplicationPackage SchemaVersion="1.0" 
-                    Name="AutoCADPlugin" 
+                    Name="Jpegger" 
                     AppVersion="1.0.0" 
                     ProductCode="{5BA6D2C8-1234-4567-89AB-CDEF12345678}">
   <CompanyDetails Name="Mikhail Nekrasov FP" Email="mishanaboss@mail.ru" />
@@ -8,9 +8,9 @@
   <Components>
     <RuntimeRequirements SeriesMin="R19.0" SeriesMax="R24.3" OS="Win64" Platform="AutoCAD" />
     
-    <ComponentEntry AppName="AutoCADPlugin" 
-                    ModuleName="./Contents/AutoCADPlugin.dll" 
-                    AppDescription="Плагин для работы с PDF" 
+    <ComponentEntry AppName="Jpegger" 
+                    ModuleName="./Contents/Jpegger.dll" 
+                    AppDescription="Exports sheet areas of a drawing to JPG images" 
                     LoadOnAutoCADStartup="True">
     </ComponentEntry>
   </Components>

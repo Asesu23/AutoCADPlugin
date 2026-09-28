@@ -1,10 +1,10 @@
-# AutoCADPlugin
+# Jpegger
 
-[![Build](https://github.com/Asesu23/AutoCADPlugin/actions/workflows/release.yml/badge.svg)](https://github.com/Asesu23/AutoCADPlugin/actions/workflows/release.yml)
-[![Release](https://img.shields.io/github/v/release/Asesu23/AutoCADPlugin)](https://github.com/Asesu23/AutoCADPlugin/releases/latest)
+[![Build](https://github.com/Asesu23/Jpegger/actions/workflows/release.yml/badge.svg)](https://github.com/Asesu23/Jpegger/actions/workflows/release.yml)
+[![Release](https://img.shields.io/github/v/release/Asesu23/Jpegger)](https://github.com/Asesu23/Jpegger/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.txt)
 
-An AutoCAD plugin that exports a grid of sheet areas from a drawing to numbered JPG files in one go. Select the first area once, say how many identical areas follow to the right and downwards, and the plugin plots each of them to PDF and converts it to a 300 DPI JPG.
+Jpegger is an AutoCAD plugin that exports a grid of sheet areas from a drawing to numbered JPG files in one go. Select the first area once, say how many identical areas follow to the right and downwards, and the plugin plots each of them to PDF and converts it to a 300 DPI JPG.
 
 ## Features
 
@@ -12,21 +12,21 @@ An AutoCAD plugin that exports a grid of sheet areas from a drawing to numbered 
 - Batch export along X and Y with a configurable start number (`1.jpg`, `2.jpg`, ...)
 - Portrait or landscape output is chosen from the shape of the selected area
 - Intermediate PDFs are removed after conversion
-- Ribbon button on the Home tab and the `SheetArea` command
+- Ribbon button on the Home tab and the `Jpegger` command
 - Windows installer that detects installed AutoCAD versions and registers the plugin as an Autodesk application bundle
 - Update check against GitHub Releases on startup
 
 ## Installation
 
-1. Download `AutoCADPlugin_Setup.exe` from the [latest release](https://github.com/Asesu23/AutoCADPlugin/releases/latest).
+1. Download `Jpegger_Setup.exe` from the [latest release](https://github.com/Asesu23/Jpegger/releases/latest).
 2. Close AutoCAD and run the installer. It is not code-signed, so Windows SmartScreen may show a warning.
-3. Start AutoCAD. The button is on the **Home** tab, in the **Jpeger** panel.
+3. Start AutoCAD. The button is on the **Home** tab, in the **Jpegger** panel.
 
 Requirements: Windows x64 and AutoCAD. The plugin is built against the AutoCAD 2022 .NET API.
 
 ## Usage
 
-1. Click the **Jpeger** button or run the `SheetArea` command to open the window.
+1. Click the **Jpegger** button or run the `Jpegger` command to open the window.
 2. Fill in the fields. The interface is currently in Russian:
 
    | Field | Meaning |
@@ -49,11 +49,11 @@ msbuild AutoCADPlugin\AutoCADPlugin.csproj /restore /p:Configuration=Release /p:
 ISCC installer\stp.iss
 ```
 
-The installer is written to `installer\Output\AutoCADPlugin_Setup.exe`.
+The installer is written to `installer\Output\Jpegger_Setup.exe`.
 
 ## Releasing
 
-Releases are built by GitHub Actions. A pushed tag like `v4.1.0` triggers a build that publishes a GitHub Release with `AutoCADPlugin_Setup.exe` and `version.txt`. The plugin reads `version.txt` to decide whether an update is available.
+Releases are built by GitHub Actions. A pushed tag like `v4.1.0` triggers a build that publishes a GitHub Release with `Jpegger_Setup.exe` and `version.txt`. The plugin reads `version.txt` to decide whether an update is available.
 
 ```
 .\release.ps1 4.1.0 "feat: describe the change"

@@ -4,16 +4,23 @@
 
 [Setup]
 AppId={{A6D2C8E4-1234-4567-89AB-CDEF12345678}}
-AppName=AutoCAD Plugin (Mikhail Nekrasov)
+AppName=Jpegger
 AppVersion={#AppVersion}
+AppPublisher=Mikhail Nekrasov
+AppPublisherURL=https://github.com/Asesu23/Jpegger
 ; Installs as an application bundle in the shared Autodesk plugins folder
 DefaultDirName={commonappdata}\Autodesk\ApplicationPlugins\AutoCADPlugin.bundle
 DisableDirPage=yes
-DefaultGroupName=AutoCAD Plugin
-OutputBaseFilename=AutoCADPlugin_Setup
+DefaultGroupName=Jpegger
+OutputBaseFilename=Jpegger_Setup
 Compression=lzma
 SolidCompression=yes
 CloseApplications=yes
+
+[InstallDelete]
+Type: files; Name: "{app}\Contents\AutoCADPlugin.dll"
+Type: files; Name: "{app}\Contents\PdfSharp*.dll"
+Type: files; Name: "{app}\Contents\Microsoft.Extensions*.dll"
 
 [Files]
 Source: "PackageContents.xml"; DestDir: "{app}"; Flags: ignoreversion

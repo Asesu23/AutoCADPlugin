@@ -52,4 +52,4 @@ Invoke-Git tag $tag
 Invoke-Git push --quiet origin $tag
 
 Write-Host "Released $tag" -ForegroundColor Green
-Write-Host 'Build status: https://github.com/Asesu23/AutoCADPlugin/actions'
+Write-Host 'Build status: https://github.com/Asesu23/Jpegger/actions'

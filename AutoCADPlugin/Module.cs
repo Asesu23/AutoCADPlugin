@@ -34,8 +34,8 @@ namespace SheetAreaSelector
         {
             try
             {
-                string versionUrl = "https://github.com/Asesu23/AutoCADPlugin/releases/latest/download/version.txt";
-                string setupUrl = "https://github.com/Asesu23/AutoCADPlugin/releases/latest/download/AutoCADPlugin_Setup.exe";
+                string versionUrl = "https://github.com/Asesu23/Jpegger/releases/latest/download/version.txt";
+                string setupUrl = "https://github.com/Asesu23/Jpegger/releases/latest/download/Jpegger_Setup.exe";
 
                 using (WebClient client = new WebClient())
                 {
@@ -47,8 +47,8 @@ namespace SheetAreaSelector
                     if (latestVersion > currentVersion)
                     {
                         var res = System.Windows.Forms.MessageBox.Show(
-                            "Доступна новая версия плагина. Установить?",
-                            "Обновление",
+                            "Доступна новая версия Jpegger. Установить?",
+                            "Jpegger",
                             System.Windows.Forms.MessageBoxButtons.YesNo,
                             System.Windows.Forms.MessageBoxIcon.Question,
                             System.Windows.Forms.MessageBoxDefaultButton.Button1,
@@ -56,7 +56,7 @@ namespace SheetAreaSelector
 
                         if (res == System.Windows.Forms.DialogResult.Yes)
                         {
-                            string tempExe = Path.Combine(Path.GetTempPath(), "PluginUpdate.exe");
+                            string tempExe = Path.Combine(Path.GetTempPath(), "JpeggerUpdate.exe");
                             client.DownloadFile(setupUrl, tempExe);
 
                             Process.Start(tempExe);
@@ -109,7 +109,7 @@ namespace SheetAreaSelector
 
                 if (homeTab == null) return;
 
-                const string panelTitle = "Jpeger";
+                const string panelTitle = "Jpegger";
                 if (homeTab.Panels.Any(p => p.Source.Title == panelTitle)) return;
 
                 var panelSource = new RibbonPanelSource { Title = panelTitle };
@@ -118,8 +118,8 @@ namespace SheetAreaSelector
 
                 var btn = new Autodesk.Windows.RibbonButton
                 {
-                    Text = "Jpg create",
-                    Id = "SheetAreaSelectorBtn",
+                    Text = "Jpegger",
+                    Id = "JpeggerButton",
                     ShowText = false,
                     ShowImage = true,
                     Size = RibbonItemSize.Large,
@@ -162,6 +162,7 @@ namespace SheetAreaSelector
             }
         }
 
+        [CommandMethod("Jpegger")]
         [CommandMethod("SheetArea")]
         public static void Cmd_SheetArea()
         {

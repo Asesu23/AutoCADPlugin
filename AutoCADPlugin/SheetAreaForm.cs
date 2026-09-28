@@ -87,7 +87,7 @@ namespace SheetAreaSelector
 
             this.FormBorderStyle = FormBorderStyle.FixedToolWindow;
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.Text = "Sheet Area";
+            this.Text = "Jpegger";
             this.TopMost = true;
 
             this.ResumeLayout(false);
