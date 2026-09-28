@@ -56,7 +56,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-          VERSION: ${{ steps.version.outputs.value }}
         run: |
-          [System.IO.File]::WriteAllText("$PWD/installer/Output/version.txt", $env:VERSION)
+          [System.IO.File]::WriteAllText("$PWD/installer/Output/version.txt", $env:TAG.TrimStart('v'))
           gh release create $env:TAG installer/Output/AutoCADPlugin_Setup.exe installer/Output/version.txt --title $env:TAG --generate-notes

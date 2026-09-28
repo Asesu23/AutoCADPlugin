@@ -35,14 +35,13 @@ namespace SheetAreaSelector
                 ps.CopyFrom(lo);
                 PlotSettingsValidator psv = PlotSettingsValidator.Current;
 
-                // Настройки как в вашем SCR
                 psv.SetPlotConfigurationName(ps, "AutoCAD PDF (General Documentation).pc3", "ISO_full_bleed_A4_(210.00_x_297.00_MM)");
                 psv.SetPlotWindowArea(ps, new Extents2d(minX, minY, maxX, maxY));
                 psv.SetPlotType(ps, Autodesk.AutoCAD.DatabaseServices.PlotType.Window);
                 psv.SetPlotCentered(ps, true);
                 psv.SetStdScaleType(ps, StdScaleType.ScaleToFit);
 
-                // Логика ориентации (L/P и Y/N)
+                // Landscape or portrait plus the upside-down flag decide the plot rotation
                 PlotRotation rotation = (orient == "L") ? PlotRotation.Degrees090 : PlotRotation.Degrees000;
                 if (upsideDown == "Y")
                     rotation = (orient == "L") ? PlotRotation.Degrees270 : PlotRotation.Degrees180;
@@ -54,7 +53,6 @@ namespace SheetAreaSelector
                 piv.MediaMatchingPolicy = MatchingPolicy.MatchEnabled;
                 piv.Validate(pi);
 
-                // Печать
                 if (PlotFactory.ProcessPlotState == ProcessPlotState.NotPlotting)
                 {
                     using (PlotEngine pe = PlotFactory.CreatePublishEngine())
@@ -117,7 +115,6 @@ namespace SheetAreaSelector
                 if (!int.TryParse(pioFloors, out int floorsCount)) floorsCount = 1;
                 if (!int.TryParse(pioStart, out int startNumber)) startNumber = 1;
 
-                // --- выбор области ---
                 PromptPointResult p1 = ed.GetPoint("\nУкажите первую точку области 1го в списке файла: ");
                 if (p1.Status != PromptStatus.OK) return;
 
@@ -136,33 +133,27 @@ namespace SheetAreaSelector
 
                 ed.WriteMessage($"\nВыбрана область: от ({minX:F2},{minY:F2}) до ({maxX:F2},{maxY:F2})");
 
-                // --- вычисление ориентации результатов ---
                 string orientation;
                 string upsideDownOrientation;
                 if (areaWidth > areaHeight) { orientation = "L"; upsideDownOrientation = "Y"; } else { orientation = "P"; upsideDownOrientation = "N"; }
 
-                // --- пути ---
                 string baseDir = string.IsNullOrEmpty(folderPath) ? _customFolderPath : folderPath;
 
                 Directory.CreateDirectory(baseDir);
 
                 int currentNumber = startNumber;
 
-                // Внешний цикл по этажам
+                // Floors shift the plot window down by one area height, repeats shift it right by one area width
                 for (int floor = 0; floor < floorsCount; floor++)
                 {
-                    // Вычисляем смещение по Y для текущего этажа
                     double currentMinY = minY - (floor * areaHeight);
                     double currentMaxY = maxY - (floor * areaHeight);
 
-                    // Внутренний цикл по X (вдоль этажа)
                     for (int xRepeat = 0; xRepeat < xRepeats; xRepeat++)
                     {
-                        // Вычисляем смещение по X для текущего повторения
                         double currentMinX = minX + (xRepeat * areaWidth);
                         double currentMaxX = maxX + (xRepeat * areaWidth);
 
-                        // Формируем уникальное имя файла
                         string currentOutImagePath = Path.Combine(baseDir, $"{currentNumber}.pdf");
                         string escapedPath = currentOutImagePath.Contains(" ") ?
                             $"\"{currentOutImagePath}\"" : currentOutImagePath;
@@ -187,6 +178,7 @@ namespace SheetAreaSelector
             int processedCount = 0;
             const int dpi = 300;
 
+            // PDFs can still be locked right after plotting, so poll until each one opens, then convert it to JPG
             var timer = new Timer { Interval = 500 };
             timer.Tick += (s, e) =>
             {
@@ -206,7 +198,6 @@ namespace SheetAreaSelector
                                 string jpgPath = Path.Combine(folderPath, $"{number}.jpg");
                                 ConvertPdfToJpg(pdfPath, jpgPath, dpi);
 
-                                // Удаляем PDF после успешной конвертации
                                 File.Delete(pdfPath);
 
                                 processedFiles.Add(pdfPath);

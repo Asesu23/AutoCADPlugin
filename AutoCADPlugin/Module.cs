@@ -34,18 +34,14 @@ namespace SheetAreaSelector
         {
             try
             {
-                // 1. Прямая ссылка на файл с версией (например на GitHub)
                 string versionUrl = "https://github.com/Asesu23/AutoCADPlugin/releases/latest/download/version.txt";
-                // 2. Прямая ссылка на ваш инсталлятор .exe
                 string setupUrl = "https://github.com/Asesu23/AutoCADPlugin/releases/latest/download/AutoCADPlugin_Setup.exe";
 
                 using (WebClient client = new WebClient())
                 {
-                    // Скачиваем номер версии с сервера
                     string latestVersionStr = client.DownloadString(versionUrl).Trim();
                     Version latestVersion = new Version(latestVersionStr);
 
-                    // Получаем версию текущей запущенной DLL
                     Version currentVersion = Assembly.GetExecutingAssembly().GetName().Version;
 
                     if (latestVersion > currentVersion)
@@ -63,17 +59,14 @@ namespace SheetAreaSelector
                             string tempExe = Path.Combine(Path.GetTempPath(), "PluginUpdate.exe");
                             client.DownloadFile(setupUrl, tempExe);
 
-                            // Запускаем инсталлятор и закрываем AutoCAD
                             Process.Start(tempExe);
-                            Process.GetCurrentProcess().Kill();
                         }
                     }
                 }
             }
             catch (System.Exception ex)
             {
-                // Это покажет окно с текстом ошибки, если обновление не срабатывает
-                System.Windows.Forms.MessageBox.Show("Ошибка в модуле обновления: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("Update check failed: " + ex.Message);
             }
         }
 
@@ -111,23 +104,18 @@ namespace SheetAreaSelector
                 var ribbon = ComponentManager.Ribbon;
                 if (ribbon == null) return;
 
-                // Ищем вкладку "Home" (Главная). 
-                // В AutoCAD её ID обычно содержит "ID_TabHome"
+                // The built-in Home tab has an id containing "ID_TabHome"
                 var homeTab = ribbon.Tabs.FirstOrDefault(t => t.Id.Contains("ID_TabHome"));
 
                 if (homeTab == null) return;
 
-                // Проверяем, не добавлена ли уже наша панель (чтобы не дублировать)
                 const string panelTitle = "Jpeger";
                 if (homeTab.Panels.Any(p => p.Source.Title == panelTitle)) return;
 
-                // Создаем источник панели
                 var panelSource = new RibbonPanelSource { Title = panelTitle };
 
-                // Создаем саму панель
                 var panel = new RibbonPanel { Source = panelSource };
 
-                // Создаем кнопку
                 var btn = new Autodesk.Windows.RibbonButton
                 {
                     Text = "Jpg create",
@@ -142,7 +130,6 @@ namespace SheetAreaSelector
                     CommandHandler = new RibbonShowFormCommand()
                 };
 
-                // Добавляем кнопку в панель, а панель во вкладку Home
                 panelSource.Items.Add(btn);
                 homeTab.Panels.Add(panel);
             }

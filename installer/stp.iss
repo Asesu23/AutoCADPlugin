@@ -6,20 +6,17 @@
 AppId={{A6D2C8E4-1234-4567-89AB-CDEF12345678}}
 AppName=AutoCAD Plugin (Mikhail Nekrasov)
 AppVersion={#AppVersion}
-; Устанавливаем в общую папку плагинов Autodesk
+; Installs as an application bundle in the shared Autodesk plugins folder
 DefaultDirName={commonappdata}\Autodesk\ApplicationPlugins\AutoCADPlugin.bundle
 DisableDirPage=yes
 DefaultGroupName=AutoCAD Plugin
 OutputBaseFilename=AutoCADPlugin_Setup
 Compression=lzma
 SolidCompression=yes
-; Инсталлятор сам попросит закрыть AutoCAD, если он запущен
 CloseApplications=yes
 
 [Files]
-; 1. Копируем файл-манифест в корень бандла
 Source: "PackageContents.xml"; DestDir: "{app}"; Flags: ignoreversion
-; 2. Копируем всё содержимое вашей чистой папки bin в подпапку Contents
 Source: "..\AutoCADPlugin\bin\x64\Release\net48\*"; DestDir: "{app}\Contents"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Languages]
@@ -34,13 +31,10 @@ Filename: "{code:GetAutoCADPath}"; \
 [Code]
 
 var
-  FoundAutoCADPaths: TArrayOfString;      // массив найденных путей к acad.exe
-  SelectedAutoCADPath: string;             // путь, выбранный пользователем
-  SelectAutoCADPage: TInputOptionWizardPage; // страница для выбора версии
+  FoundAutoCADPaths: TArrayOfString;
+  SelectedAutoCADPath: string;
+  SelectAutoCADPage: TInputOptionWizardPage;
 
-// ------------------------------------------------------------------
-// Поиск всех установленных версий AutoCAD в реестре
-// ------------------------------------------------------------------
 procedure FindAllAutoCADVersions();
 var
   I, J: Integer;
@@ -73,7 +67,7 @@ begin
           SubKey := ReleaseKey + '\' + SubVersions[J];
           Log('  Проверяем подраздел: ' + SubKey);
 
-          // Сначала пробуем AcadLocation (современные версии)
+          // Newer AutoCAD versions store AcadLocation, older ones store Location
           if RegQueryStringValue(RegRoot, SubKey, 'AcadLocation', AcadPath) then
           begin
             if (AcadPath <> '') and FileExists(AcadPath + '\acad.exe') then
@@ -85,7 +79,6 @@ begin
             end;
           end
           else
-          // Если нет AcadLocation, пробуем Location (старые версии)
           if RegQueryStringValue(RegRoot, SubKey, 'Location', AcadPath) then
           begin
             if (AcadPath <> '') and FileExists(AcadPath + '\acad.exe') then
@@ -104,9 +97,6 @@ begin
   Log('Поиск завершен. Найдено версий: ' + IntToStr(GetArrayLength(FoundAutoCADPaths)));
 end;
 
-// ------------------------------------------------------------------
-// Создание страницы выбора, если найдено несколько версий
-// ------------------------------------------------------------------
 procedure InitializeWizard();
 var
   I: Integer;
@@ -126,30 +116,24 @@ begin
       SelectAutoCADPage.Add(ExtractFilePath(FoundAutoCADPaths[I]));
     end;
 
-    SelectAutoCADPage.SelectedValueIndex := 0; // предвыбор первого
+    SelectAutoCADPage.SelectedValueIndex := 0;
   end;
 end;
 
-// ------------------------------------------------------------------
-// Функция возвращает путь к acad.exe для секции [Run]
-// ------------------------------------------------------------------
 function GetAutoCADPath(Param: string): string;
 begin
-  // Если пользователь уже выбрал (на странице)
   if SelectedAutoCADPath <> '' then
   begin
     Result := SelectedAutoCADPath;
     Exit;
   end;
 
-  // Если найдена ровно одна версия
   if GetArrayLength(FoundAutoCADPaths) = 1 then
   begin
     Result := FoundAutoCADPaths[0];
     Exit;
   end;
 
-  // Если несколько версий и страница существует, берём выбранный пункт
   if (GetArrayLength(FoundAutoCADPaths) > 1) and Assigned(SelectAutoCADPage) then
   begin
     if SelectAutoCADPage.SelectedValueIndex >= 0 then
@@ -160,13 +144,9 @@ begin
     end;
   end;
 
-  // Ничего не найдено
   Result := '';
 end;
 
-// ------------------------------------------------------------------
-// Проверка, нужно ли показывать пункт запуска AutoCAD
-// ------------------------------------------------------------------
 function ShouldRunAutoCAD: Boolean;
 var
   Path: string;

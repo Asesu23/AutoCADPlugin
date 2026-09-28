@@ -12,7 +12,6 @@ namespace SheetAreaSelector
         private Button buttonSelectFolder;
         private Label labelFolderPath;
 
-        // Поля ввода
         private Label lblRowX;
         private TextBox txtRowX;
         private Label lblColY;
@@ -42,52 +41,44 @@ namespace SheetAreaSelector
 
             this.SuspendLayout();
 
-            // Кнопка выбора области
             this.buttonSelect.Location = new Point(12, 12);
             this.buttonSelect.Size = new Size(260, 40);
             this.buttonSelect.Text = "Выбрать область";
             this.buttonSelect.Click += new EventHandler(this.buttonSelect_Click);
 
-            // Поле Строка(X)
             this.lblRowX.Location = new Point(12, 60);
             this.lblRowX.Size = new Size(80, 15);
             this.lblRowX.Text = "Строка(X):";
             this.txtRowX.Location = new Point(12, 78);
             this.txtRowX.Size = new Size(80, 20);
 
-            // Поле Столбец(Y)
             this.lblColY.Location = new Point(102, 60);
             this.lblColY.Size = new Size(80, 15);
             this.lblColY.Text = "Столбец(Y):";
             this.txtColY.Location = new Point(102, 78);
             this.txtColY.Size = new Size(80, 20);
 
-            // Поле С какой начинать
             this.lblStartFrom.Location = new Point(192, 60);
             this.lblStartFrom.Size = new Size(80, 15);
             this.lblStartFrom.Text = "Начать с:";
             this.txtStartFrom.Location = new Point(192, 78);
             this.txtStartFrom.Size = new Size(80, 20);
 
-            // Кнопка выбора папки
             this.buttonSelectFolder.Location = new Point(12, 110);
             this.buttonSelectFolder.Size = new Size(260, 30);
             this.buttonSelectFolder.Text = "Выбрать папку сохранения";
             this.buttonSelectFolder.Click += new EventHandler(this.buttonSelectFolder_Click);
 
-            // Путь
             this.labelFolderPath.Location = new Point(12, 145);
             this.labelFolderPath.Size = new Size(260, 40);
             this.labelFolderPath.BorderStyle = BorderStyle.FixedSingle;
             this.labelFolderPath.BackColor = SystemColors.Window;
 
-            // Кнопка закрытия
             this.buttonClose.Location = new Point(12, 195);
             this.buttonClose.Size = new Size(260, 30);
             this.buttonClose.Text = "Закрыть";
             this.buttonClose.Click += new EventHandler(this.buttonClose_Click);
 
-            // Форма
             this.ClientSize = new Size(284, 235);
             this.Controls.AddRange(new Control[] {
                 buttonSelect, lblRowX, txtRowX, lblColY, txtColY,
@@ -107,12 +98,10 @@ namespace SheetAreaSelector
         {
             try
             {
-                // 1. Записываем значения из полей формы в класс Commands
                 Commands.RowX = txtRowX.Text;
                 Commands.ColY = txtColY.Text;
                 Commands.StartFrom = txtStartFrom.Text;
 
-                // 2. Скрываем форму и запускаем логику
                 this.Hide();
                 Commands.RunSelectionAndSave();
             }
