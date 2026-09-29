@@ -118,7 +118,7 @@ namespace SheetAreaSelector
 
                 var btn = new Autodesk.Windows.RibbonButton
                 {
-                    Text = "Экспорт в JPG",
+                    Text = "Export",
                     Id = "JpeggerButton",
                     ShowText = true,
                     ShowImage = true,
@@ -129,7 +129,7 @@ namespace SheetAreaSelector
                     ToolTip = new Autodesk.Windows.RibbonToolTip
                     {
                         Title = "Jpegger",
-                        Content = "Экспорт областей листа в JPG",
+                        Content = "Export drawing sheet areas to JPG images",
                         Command = "JPEGGER"
                     },
 
