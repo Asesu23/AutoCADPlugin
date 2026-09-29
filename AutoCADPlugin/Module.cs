@@ -118,14 +118,20 @@ namespace SheetAreaSelector
 
                 var btn = new Autodesk.Windows.RibbonButton
                 {
-                    Text = "Jpegger",
+                    Text = "Экспорт в JPG",
                     Id = "JpeggerButton",
-                    ShowText = false,
+                    ShowText = true,
                     ShowImage = true,
                     Size = RibbonItemSize.Large,
                     Orientation = System.Windows.Controls.Orientation.Vertical,
-                    LargeImage = GetBitmapSource(AutoCADPlugin.Properties.Resources.jpeger),
-                    Image = GetBitmapSource(AutoCADPlugin.Properties.Resources.jpeger),
+                    LargeImage = GetBitmapSource(AutoCADPlugin.Properties.Resources.jpegger),
+                    Image = GetBitmapSource(AutoCADPlugin.Properties.Resources.jpegger),
+                    ToolTip = new Autodesk.Windows.RibbonToolTip
+                    {
+                        Title = "Jpegger",
+                        Content = "Экспорт областей листа в JPG",
+                        Command = "JPEGGER"
+                    },
 
                     CommandHandler = new RibbonShowFormCommand()
                 };
@@ -180,11 +186,21 @@ namespace SheetAreaSelector
             if (bitmap == null) return null;
             try
             {
-                return System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
-                    bitmap.GetHbitmap(),
-                    IntPtr.Zero,
-                    System.Windows.Int32Rect.Empty,
-                    System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                var rect = new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height);
+                var data = bitmap.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+                try
+                {
+                    var source = System.Windows.Media.Imaging.BitmapSource.Create(
+                        data.Width, data.Height, 96, 96,
+                        System.Windows.Media.PixelFormats.Pbgra32, null,
+                        data.Scan0, data.Stride * data.Height, data.Stride);
+                    source.Freeze();
+                    return source;
+                }
+                finally
+                {
+                    bitmap.UnlockBits(data);
+                }
             }
             catch
             {
