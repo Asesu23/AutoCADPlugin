@@ -159,7 +159,9 @@ namespace SheetAreaSelector
             {
                 try
                 {
-                    SheetAreaForm.ShowModeless();
+                    var doc = AcadApp.DocumentManager.MdiActiveDocument;
+                    if (doc != null)
+                        doc.SendStringToExecute("JPEGGER ", true, false, false);
                 }
                 catch (System.Exception ex)
                 {
@@ -170,17 +172,18 @@ namespace SheetAreaSelector
 
         [CommandMethod("Jpegger")]
         [CommandMethod("SheetArea")]
-        public static void Cmd_SheetArea()
+        public static void Cmd_Jpegger()
         {
             try
             {
-                SheetAreaForm.ShowModeless();
+                Commands.Run();
             }
             catch (System.Exception ex)
             {
-                TryWriteEditor("\nCmd_SheetArea error: " + ex.Message);
+                TryWriteEditor("\nJpegger error: " + ex.Message);
             }
         }
+
         private static System.Windows.Media.Imaging.BitmapSource GetBitmapSource(System.Drawing.Bitmap bitmap)
         {
             if (bitmap == null) return null;

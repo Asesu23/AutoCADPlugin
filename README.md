@@ -8,9 +8,13 @@ Jpegger is an AutoCAD plugin that exports a grid of sheet areas from a drawing t
 
 ## Features
 
+- Native-feeling dialog owned by AutoCAD, like the Plot dialog: it hides while you pick the area and does not appear as a separate window
 - Pick the first area with two corner clicks, the same area size is repeated across the drawing
+- Live preview of the whole export grid with file numbers drawn in the model before anything is exported
 - Batch export along X and Y with a configurable start number (`1.jpg`, `2.jpg`, ...)
 - Portrait or landscape output is chosen from the shape of the selected area
+- Progress in the AutoCAD status bar, optional opening of the output folder when done
+- Settings are remembered between sessions
 - Intermediate PDFs are removed after conversion
 - Ribbon button on the Home tab and the `Jpegger` command
 - Windows installer that detects installed AutoCAD versions and registers the plugin as an Autodesk application bundle
@@ -26,17 +30,17 @@ Requirements: Windows x64 and AutoCAD. The plugin is built against the AutoCAD 2
 
 ## Usage
 
-1. Click the **Jpegger** button or run the `Jpegger` command to open the window.
-2. Fill in the fields. The interface is currently in Russian:
+1. Click the **Export** button in the **Jpegger** panel or run the `Jpegger` command. The interface is currently in Russian.
+2. Press `Указать область <`. The dialog hides, click two opposite corners of the first area, then the dialog returns with the area size.
+3. Set the grid. A preview of every area with its file number appears in the drawing and follows your changes:
 
    | Field | Meaning |
    | --- | --- |
-   | `Строка(X)` | How many areas to export along X, to the right |
-   | `Столбец(Y)` | How many areas to export along Y, going down |
-   | `Начать с` | Number of the first file |
+   | `Колонок (X)` | How many areas to export along X, to the right |
+   | `Рядов (Y)` | How many areas to export along Y, going down |
+   | `Начать с №` | Number of the first file |
 
-3. Optionally choose the output folder (default: `C:\AutocadJpgResult\`).
-4. Press `Выбрать область` and click two opposite corners of the first area.
+4. Choose the output folder (default: `C:\AutocadJpgResult\`) and press `Экспорт`. The button is enabled once an area is selected.
 
 For every step to the right the plot window moves by the area width, for every step down by the area height. Files are numbered row by row. Each area is plotted with the built-in `AutoCAD PDF (General Documentation)` plotter on A4 paper, scaled to fit and centered.
 

@@ -71,88 +71,109 @@ namespace SheetAreaSelector
             }
         }
 
-        private static string _customFolderPath = @"C:\AutocadJpgResult\";
-        public static string RowX { get; set; } = "1";
-        public static string ColY { get; set; } = "1";
-        public static string StartFrom { get; set; } = "1";
-
-        public static string CustomFolderPath
-        {
-            get { return _customFolderPath; }
-            set
-            {
-                if (!string.IsNullOrWhiteSpace(value))
-                {
-                    _customFolderPath = value;
-                }
-            }
-        }
-
-        [CommandMethod("SelectSheetAreaRunScriptNow")]
-        public static void RunSelectionAndSave()
-        {
-            var cmd = new Commands();
-            cmd.SelectSheetAreaRunScriptNow(_customFolderPath, Commands.RowX, Commands.ColY, Commands.StartFrom);
-        }
-
-        public static void RunSelectionAndSaveWithCustomPath(string folderPath)
-        {
-            var cmd = new Commands();
-            cmd.SelectSheetAreaRunScriptNow(folderPath);
-        }
-
-        public void SelectSheetAreaRunScriptNow(string folderPath = null, string pioX = null, string pioFloors = null, string pioStart = null)
+        public static void Run()
         {
             Document doc = AcadApp.DocumentManager.MdiActiveDocument;
-            Editor ed = doc.Editor;
+            if (doc == null) return;
 
-            object oldBackPlot = Autodesk.AutoCAD.ApplicationServices.Core.Application.GetSystemVariable("BACKGROUNDPLOT");
-            Autodesk.AutoCAD.ApplicationServices.Core.Application.SetSystemVariable("BACKGROUNDPLOT", 0);
+            ExportSettings settings = ExportSettings.Current;
+            if (settings.HasArea && settings.AreaDocument != doc.Name)
+                settings.ClearArea();
 
             try
             {
-                if (!int.TryParse(pioX, out int xRepeats)) xRepeats = 1;
-                if (!int.TryParse(pioFloors, out int floorsCount)) floorsCount = 1;
-                if (!int.TryParse(pioStart, out int startNumber)) startNumber = 1;
+                while (true)
+                {
+                    DialogResult result;
+                    using (var form = new JpeggerForm(settings))
+                    {
+                        form.PreviewChanged += (s, e) => GridPreview.Show(settings);
+                        GridPreview.Show(settings);
+                        result = AcadApp.ShowModalDialog(form);
+                    }
 
-                PromptPointResult p1 = ed.GetPoint("\nУкажите первую точку области 1го в списке файла: ");
-                if (p1.Status != PromptStatus.OK) return;
+                    GridPreview.Clear();
+                    settings.Save();
 
-                PromptCornerOptions pco =
-                    new PromptCornerOptions("\nУкажите противоположную точку области 1го в списке файла: ", p1.Value);
-                PromptPointResult p2 = ed.GetCorner(pco);
-                if (p2.Status != PromptStatus.OK) return;
+                    if (result == DialogResult.Retry)
+                    {
+                        PickArea(doc, settings);
+                        continue;
+                    }
 
-                double minX = Math.Min(p1.Value.X, p2.Value.X);
-                double minY = Math.Min(p1.Value.Y, p2.Value.Y);
-                double maxX = Math.Max(p1.Value.X, p2.Value.X);
-                double maxY = Math.Max(p1.Value.Y, p2.Value.Y);
+                    if (result == DialogResult.OK)
+                        new Commands().Export(doc, settings);
 
-                double areaWidth = maxX - minX;
-                double areaHeight = maxY - minY;
+                    break;
+                }
+            }
+            finally
+            {
+                GridPreview.Clear();
+            }
+        }
 
-                ed.WriteMessage($"\nВыбрана область: от ({minX:F2},{minY:F2}) до ({maxX:F2},{maxY:F2})");
+        private static void PickArea(Document doc, ExportSettings settings)
+        {
+            Editor ed = doc.Editor;
 
-                string orientation;
-                string upsideDownOrientation;
-                if (areaWidth > areaHeight) { orientation = "L"; upsideDownOrientation = "Y"; } else { orientation = "P"; upsideDownOrientation = "N"; }
+            PromptPointResult first = ed.GetPoint("\nУкажите первый угол области: ");
+            if (first.Status != PromptStatus.OK) return;
 
-                string baseDir = string.IsNullOrEmpty(folderPath) ? _customFolderPath : folderPath;
+            var options = new PromptCornerOptions("\nУкажите противоположный угол области: ", first.Value);
+            PromptPointResult second = ed.GetCorner(options);
+            if (second.Status != PromptStatus.OK) return;
 
+            double minX = Math.Min(first.Value.X, second.Value.X);
+            double minY = Math.Min(first.Value.Y, second.Value.Y);
+            double maxX = Math.Max(first.Value.X, second.Value.X);
+            double maxY = Math.Max(first.Value.Y, second.Value.Y);
+
+            if (maxX - minX < 1e-9 || maxY - minY < 1e-9)
+            {
+                ed.WriteMessage("\nОбласть не должна быть нулевого размера.");
+                return;
+            }
+
+            settings.SetArea(minX, minY, maxX, maxY, doc.Name);
+        }
+
+        private void Export(Document doc, ExportSettings settings)
+        {
+            Editor ed = doc.Editor;
+            object oldBackgroundPlot = null;
+            ProgressMeter progress = null;
+
+            try
+            {
+                oldBackgroundPlot = Autodesk.AutoCAD.ApplicationServices.Core.Application.GetSystemVariable("BACKGROUNDPLOT");
+                Autodesk.AutoCAD.ApplicationServices.Core.Application.SetSystemVariable("BACKGROUNDPLOT", 0);
+
+                string baseDir = settings.OutputFolder;
                 Directory.CreateDirectory(baseDir);
 
-                int currentNumber = startNumber;
+                double areaWidth = settings.AreaWidth;
+                double areaHeight = settings.AreaHeight;
+                string orientation = settings.IsLandscape ? "L" : "P";
+                string upsideDownOrientation = settings.IsLandscape ? "Y" : "N";
+
+                int totalCount = settings.TotalCount;
+                int currentNumber = settings.StartNumber;
+
+                progress = new ProgressMeter();
+                progress.Start("Jpegger: печать областей");
+                progress.SetLimit(totalCount);
 
                 // Floors shift the plot window down by one area height, repeats shift it right by one area width
-                for (int floor = 0; floor < floorsCount; floor++)
+                for (int floor = 0; floor < settings.Rows; floor++)
                 {
-                    double currentMinY = minY - (floor * areaHeight);
-                    double currentMaxY = maxY - (floor * areaHeight);
+                    double currentMinY = settings.MinY - (floor * areaHeight);
+                    double currentMaxY = settings.MaxY - (floor * areaHeight);
 
-                    for (int xRepeat = 0; xRepeat < xRepeats; xRepeat++)
+                    for (int xRepeat = 0; xRepeat < settings.Columns; xRepeat++)
                     {
-                        double currentMinX = minX + (xRepeat * areaWidth);
-                        double currentMaxX = maxX + (xRepeat * areaWidth);
+                        double currentMinX = settings.MinX + (xRepeat * areaWidth);
+                        double currentMaxX = settings.MaxX + (xRepeat * areaWidth);
 
                         string currentOutImagePath = Path.Combine(baseDir, $"{currentNumber}.pdf");
                         string escapedPath = currentOutImagePath.Contains(" ") ?
@@ -161,22 +182,34 @@ namespace SheetAreaSelector
                         DirectPlot(escapedPath, currentMinX, currentMinY, currentMaxX, currentMaxY, orientation, upsideDownOrientation);
 
                         currentNumber++;
+                        progress.MeterProgress();
                     }
                 }
-                int totalCount = xRepeats * floorsCount;
-                StartConversionWithTimer(baseDir, startNumber, totalCount);
+
+                StartConversionWithTimer(baseDir, settings.StartNumber, totalCount, settings.OpenFolderAfterExport);
             }
             catch (System.Exception ex)
             {
                 ed.WriteMessage("\n[ERR] " + ex.Message);
             }
+            finally
+            {
+                if (progress != null) progress.Stop();
+                if (oldBackgroundPlot != null)
+                {
+                    try { Autodesk.AutoCAD.ApplicationServices.Core.Application.SetSystemVariable("BACKGROUNDPLOT", oldBackgroundPlot); }
+                    catch { }
+                }
+            }
         }
 
-        private void StartConversionWithTimer(string folderPath, int startNumber, int totalCount)
+        private void StartConversionWithTimer(string folderPath, int startNumber, int totalCount, bool openFolder)
         {
             var processedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            int processedCount = 0;
+            int convertedCount = 0;
+            int failedCount = 0;
             const int dpi = 300;
+            DateTime deadline = DateTime.UtcNow.AddMinutes(5);
 
             // PDFs can still be locked right after plotting, so poll until each one opens, then convert it to JPG
             var timer = new Timer { Interval = 500 };
@@ -189,38 +222,49 @@ namespace SheetAreaSelector
                 {
                     int number = startNumber + i;
                     string pdfPath = Path.Combine(folderPath, $"{number}.pdf");
-                    if (File.Exists(pdfPath) && !processedFiles.Contains(pdfPath))
+                    if (File.Exists(pdfPath) && !processedFiles.Contains(pdfPath) && IsFileReady(pdfPath))
                     {
-                        if (IsFileReady(pdfPath))
+                        processedFiles.Add(pdfPath);
+                        try
                         {
-                            try
-                            {
-                                string jpgPath = Path.Combine(folderPath, $"{number}.jpg");
-                                ConvertPdfToJpg(pdfPath, jpgPath, dpi);
+                            string jpgPath = Path.Combine(folderPath, $"{number}.jpg");
+                            ConvertPdfToJpg(pdfPath, jpgPath, dpi);
 
-                                File.Delete(pdfPath);
-
-                                processedFiles.Add(pdfPath);
-                                processedCount++;
-                            }
-                            catch (System.Exception ex)
-                            {
-                                doc.Editor.WriteMessage($"\n[ERR] {pdfPath}: {ex.Message}");
-                            }
+                            File.Delete(pdfPath);
+                            convertedCount++;
+                        }
+                        catch (System.Exception ex)
+                        {
+                            failedCount++;
+                            doc.Editor.WriteMessage($"\n[ERR] {pdfPath}: {ex.Message}");
                         }
                     }
                 }
 
-                if (processedCount >= totalCount)
+                bool finished = convertedCount + failedCount >= totalCount;
+                if (finished || DateTime.UtcNow > deadline)
                 {
                     timer.Stop();
                     timer.Dispose();
+                    doc.Editor.WriteMessage($"\n[Jpegger] Готово: {convertedCount} из {totalCount} файлов сохранено в {folderPath}");
+                    if (openFolder && convertedCount > 0) OpenFolder(folderPath);
                 }
             };
 
             timer.Start();
             Document mainDoc = AcadApp.DocumentManager.MdiActiveDocument;
-            mainDoc.Editor.WriteMessage($"\n[CONV] Запущен таймер конвертации для {totalCount} файлов (JPG, {dpi} DPI)...");
+            mainDoc.Editor.WriteMessage($"\n[Jpegger] Конвертация {totalCount} файлов в JPG ({dpi} DPI)...");
+        }
+
+        private static void OpenFolder(string folderPath)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start("explorer.exe", "\"" + folderPath + "\"");
+            }
+            catch
+            {
+            }
         }
 
         private bool IsFileReady(string filePath)
