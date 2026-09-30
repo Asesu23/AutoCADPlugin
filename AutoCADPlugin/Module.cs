@@ -184,6 +184,32 @@ namespace SheetAreaSelector
             }
         }
 
+        [CommandMethod("JpeggerPick")]
+        public static void Cmd_JpeggerPick()
+        {
+            try
+            {
+                Commands.PickAreaFromDialog();
+            }
+            catch (System.Exception ex)
+            {
+                TryWriteEditor("\nJpegger error: " + ex.Message);
+            }
+        }
+
+        [CommandMethod("JpeggerExport")]
+        public static void Cmd_JpeggerExport()
+        {
+            try
+            {
+                Commands.ExportFromDialog();
+            }
+            catch (System.Exception ex)
+            {
+                TryWriteEditor("\nJpegger error: " + ex.Message);
+            }
+        }
+
         private static System.Windows.Media.Imaging.BitmapSource GetBitmapSource(System.Drawing.Bitmap bitmap)
         {
             if (bitmap == null) return null;

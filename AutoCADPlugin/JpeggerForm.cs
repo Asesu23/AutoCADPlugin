@@ -25,6 +25,8 @@ namespace SheetAreaSelector
         private bool _loading;
 
         public event EventHandler PreviewChanged;
+        public event EventHandler PickAreaRequested;
+        public event EventHandler ExportRequested;
 
         public JpeggerForm(ExportSettings settings)
         {
@@ -36,6 +38,13 @@ namespace SheetAreaSelector
             BuildLayout();
             LoadValues();
             UpdateState();
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            Rectangle area = Screen.FromPoint(MousePosition).WorkingArea;
+            Location = new Point(Math.Max(area.Left, area.Right - Width - 40), area.Top + 120);
         }
 
         protected override void Dispose(bool disposing)
@@ -94,7 +103,7 @@ namespace SheetAreaSelector
                 Location = new Point(12, 24),
                 Size = new Size(160, 30)
             };
-            _pickButton.Click += (s, e) => DialogResult = DialogResult.Retry;
+            _pickButton.Click += (s, e) => Raise(PickAreaRequested);
             _areaLabel = new Label
             {
                 Location = new Point(184, 24),
@@ -192,9 +201,9 @@ namespace SheetAreaSelector
             {
                 Text = "Закрыть",
                 Location = new Point(338, 378),
-                Size = new Size(90, 34),
-                DialogResult = DialogResult.Cancel
+                Size = new Size(90, 34)
             };
+            closeButton.Click += (s, e) => Close();
 
             Controls.Add(header);
             Controls.Add(areaGroup);
@@ -206,12 +215,11 @@ namespace SheetAreaSelector
 
             Text = "Jpegger";
             FormBorderStyle = FormBorderStyle.FixedDialog;
-            StartPosition = FormStartPosition.CenterParent;
+            StartPosition = FormStartPosition.Manual;
             MaximizeBox = false;
             MinimizeBox = false;
             ShowIcon = false;
             ShowInTaskbar = false;
-            AcceptButton = _exportButton;
             CancelButton = closeButton;
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
@@ -273,7 +281,16 @@ namespace SheetAreaSelector
             _settings.StartNumber = start;
             UpdateState();
 
-            var handler = PreviewChanged;
+            Raise(PreviewChanged);
+        }
+
+        public void RefreshState()
+        {
+            UpdateState();
+        }
+
+        private void Raise(EventHandler handler)
+        {
             if (handler != null) handler(this, EventArgs.Empty);
         }
 
@@ -343,7 +360,7 @@ namespace SheetAreaSelector
             }
 
             _settings.OutputFolder = folder;
-            DialogResult = DialogResult.OK;
+            Raise(ExportRequested);
         }
 
         private static bool TryPrepareFolder(string folder, out string error)

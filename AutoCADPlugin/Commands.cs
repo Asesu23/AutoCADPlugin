@@ -71,8 +71,16 @@ namespace SheetAreaSelector
             }
         }
 
+        private static JpeggerForm _form;
+
         public static void Run()
         {
+            if (_form != null && !_form.IsDisposed)
+            {
+                ShowForm(_form);
+                return;
+            }
+
             Document doc = AcadApp.DocumentManager.MdiActiveDocument;
             if (doc == null) return;
 
@@ -80,37 +88,102 @@ namespace SheetAreaSelector
             if (settings.HasArea && settings.AreaDocument != doc.Name)
                 settings.ClearArea();
 
+            var form = new JpeggerForm(settings);
+            form.PreviewChanged += (s, e) => GridPreview.Show(settings);
+            form.PickAreaRequested += (s, e) => RunFromDialog("JPEGGERPICK ");
+            form.ExportRequested += (s, e) => RunFromDialog("JPEGGEREXPORT ");
+            form.FormClosed += OnFormClosed;
+            _form = form;
+
+            AcadApp.DocumentManager.DocumentActivated += OnDocumentActivated;
+            GridPreview.Show(settings);
+            AcadApp.ShowModelessDialog(form);
+        }
+
+        public static void PickAreaFromDialog()
+        {
+            Document doc = AcadApp.DocumentManager.MdiActiveDocument;
+            JpeggerForm form = _form;
+            if (doc == null || form == null || form.IsDisposed) return;
+
+            ExportSettings settings = ExportSettings.Current;
+            GridPreview.Clear();
             try
             {
-                while (true)
-                {
-                    DialogResult result;
-                    using (var form = new JpeggerForm(settings))
-                    {
-                        form.PreviewChanged += (s, e) => GridPreview.Show(settings);
-                        GridPreview.Show(settings);
-                        result = AcadApp.ShowModalDialog(form);
-                    }
-
-                    GridPreview.Clear();
-                    settings.Save();
-
-                    if (result == DialogResult.Retry)
-                    {
-                        PickArea(doc, settings);
-                        continue;
-                    }
-
-                    if (result == DialogResult.OK)
-                        new Commands().Export(doc, settings);
-
-                    break;
-                }
+                PickArea(doc, settings);
             }
             finally
             {
-                GridPreview.Clear();
+                form.RefreshState();
+                GridPreview.Show(settings);
+                ShowForm(form);
             }
+        }
+
+        public static void ExportFromDialog()
+        {
+            Document doc = AcadApp.DocumentManager.MdiActiveDocument;
+            JpeggerForm form = _form;
+            if (doc == null || form == null || form.IsDisposed) return;
+
+            ExportSettings settings = ExportSettings.Current;
+            if (!settings.HasArea)
+            {
+                ShowForm(form);
+                return;
+            }
+
+            GridPreview.Clear();
+            settings.Save();
+            try
+            {
+                new Commands().Export(doc, settings);
+            }
+            finally
+            {
+                form.Close();
+            }
+        }
+
+        private static void RunFromDialog(string command)
+        {
+            Document doc = AcadApp.DocumentManager.MdiActiveDocument;
+            JpeggerForm form = _form;
+            if (doc == null || form == null || form.IsDisposed) return;
+
+            if (!string.IsNullOrEmpty(doc.CommandInProgress))
+            {
+                MessageBox.Show(form, "Завершите текущую команду AutoCAD и повторите.", "Jpegger",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            form.Hide();
+            doc.SendStringToExecute(command, true, false, false);
+        }
+
+        private static void ShowForm(JpeggerForm form)
+        {
+            form.Show();
+            form.Activate();
+        }
+
+        private static void OnFormClosed(object sender, FormClosedEventArgs e)
+        {
+            AcadApp.DocumentManager.DocumentActivated -= OnDocumentActivated;
+            GridPreview.Clear();
+            ExportSettings.Current.Save();
+            _form = null;
+        }
+
+        private static void OnDocumentActivated(object sender, DocumentCollectionEventArgs e)
+        {
+            ExportSettings settings = ExportSettings.Current;
+            if (!settings.HasArea || e.Document == null || settings.AreaDocument == e.Document.Name) return;
+
+            settings.ClearArea();
+            GridPreview.Clear();
+            if (_form != null && !_form.IsDisposed) _form.RefreshState();
         }
 
         private static void PickArea(Document doc, ExportSettings settings)

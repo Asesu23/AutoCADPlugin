@@ -65,7 +65,7 @@ namespace SheetAreaSelector
         {
             double width = settings.AreaWidth;
             double height = settings.AreaHeight;
-            double textHeight = Math.Min(width, height) * 0.12;
+            double textHeight = Math.Min(width, height) * 0.1;
             int number = settings.StartNumber;
 
             for (int row = 0; row < settings.Rows; row++)
@@ -107,12 +107,17 @@ namespace SheetAreaSelector
 
         private static Entity CreateLabel(string text, double centerX, double centerY, double height, int color)
         {
-            double approximateWidth = height * 0.65 * text.Length;
-            var label = new DBText();
-            label.TextString = text;
-            label.Height = height;
-            label.Position = new Point3d(centerX - approximateWidth / 2, centerY - height / 2, 0);
-            label.ColorIndex = color;
+            var label = new MText();
+            label.Location = new Point3d(centerX, centerY, 0);
+            label.Attachment = AttachmentPoint.MiddleCenter;
+            label.TextHeight = height;
+            label.Contents = text;
+            label.Color = Autodesk.AutoCAD.Colors.Color.FromRgb(0, 0, 0);
+            label.UseBackgroundColor = false;
+            label.BackgroundFill = true;
+            label.BackgroundFillColor = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, (short)color);
+            label.BackgroundScaleFactor = 1.4;
+            label.BackgroundTransparency = new Autodesk.AutoCAD.Colors.Transparency((byte)179);
             return label;
         }
 
