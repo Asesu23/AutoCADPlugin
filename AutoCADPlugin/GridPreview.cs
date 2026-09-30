@@ -14,6 +14,10 @@ namespace SheetAreaSelector
         private const int FirstTileColor = 2;
         private const int TileColor = 4;
 
+        // 70% of the tile color blended over a dark background, since transients do not show transparency in 2D Wireframe
+        private static readonly Autodesk.AutoCAD.Colors.Color FirstPlateColor = Autodesk.AutoCAD.Colors.Color.FromRgb(188, 191, 14);
+        private static readonly Autodesk.AutoCAD.Colors.Color TilePlateColor = Autodesk.AutoCAD.Colors.Color.FromRgb(10, 191, 193);
+
         private static readonly List<Entity> Items = new List<Entity>();
 
         public static void Show(ExportSettings settings)
@@ -74,10 +78,14 @@ namespace SheetAreaSelector
                 {
                     double x = settings.MinX + column * width;
                     double y = settings.MinY - row * height;
-                    int color = (row == 0 && column == 0) ? FirstTileColor : TileColor;
+                    bool first = row == 0 && column == 0;
+                    string text = number.ToString(CultureInfo.InvariantCulture);
+                    double centerX = x + width / 2;
+                    double centerY = y + height / 2;
 
-                    Add(CreateFrame(x, y, x + width, y + height, color));
-                    Add(CreateLabel(number.ToString(CultureInfo.InvariantCulture), x + width / 2, y + height / 2, textHeight, color));
+                    Add(CreateFrame(x, y, x + width, y + height, first ? FirstTileColor : TileColor));
+                    Add(CreatePlate(centerX, centerY, textHeight * (0.9 * text.Length + 0.9), textHeight * 1.7, first));
+                    Add(CreateLabel(text, centerX, centerY, textHeight));
                     number++;
                 }
             }
@@ -105,7 +113,19 @@ namespace SheetAreaSelector
             return frame;
         }
 
-        private static Entity CreateLabel(string text, double centerX, double centerY, double height, int color)
+        private static Entity CreatePlate(double centerX, double centerY, double width, double height, bool first)
+        {
+            double x1 = centerX - width / 2;
+            double x2 = centerX + width / 2;
+            double y1 = centerY - height / 2;
+            double y2 = centerY + height / 2;
+
+            var plate = new Solid(new Point3d(x1, y1, 0), new Point3d(x2, y1, 0), new Point3d(x1, y2, 0), new Point3d(x2, y2, 0));
+            plate.Color = first ? FirstPlateColor : TilePlateColor;
+            return plate;
+        }
+
+        private static Entity CreateLabel(string text, double centerX, double centerY, double height)
         {
             var label = new MText();
             label.Location = new Point3d(centerX, centerY, 0);
@@ -113,11 +133,6 @@ namespace SheetAreaSelector
             label.TextHeight = height;
             label.Contents = text;
             label.Color = Autodesk.AutoCAD.Colors.Color.FromRgb(0, 0, 0);
-            label.UseBackgroundColor = false;
-            label.BackgroundFill = true;
-            label.BackgroundFillColor = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, (short)color);
-            label.BackgroundScaleFactor = 1.4;
-            label.BackgroundTransparency = new Autodesk.AutoCAD.Colors.Transparency((byte)179);
             return label;
         }
 
