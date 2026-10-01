@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+using Mode = Autodesk.AutoCAD.GraphicsInterface.TransientDrawingMode;
 
 namespace SheetAreaSelector
 {
@@ -14,7 +15,7 @@ namespace SheetAreaSelector
         private const int FirstTileColor = 2;
         private const int TileColor = 4;
 
-        // 70% of the tile color blended over a dark background, since transients do not show transparency in 2D Wireframe
+        // 70% of the tile color blended over a dark background, so the plate needs no transparency
         private static readonly Autodesk.AutoCAD.Colors.Color FirstPlateColor = Autodesk.AutoCAD.Colors.Color.FromRgb(188, 191, 14);
         private static readonly Autodesk.AutoCAD.Colors.Color TilePlateColor = Autodesk.AutoCAD.Colors.Color.FromRgb(10, 191, 193);
 
@@ -83,9 +84,9 @@ namespace SheetAreaSelector
                     double centerX = x + width / 2;
                     double centerY = y + height / 2;
 
-                    Add(CreateFrame(x, y, x + width, y + height, first ? FirstTileColor : TileColor));
-                    Add(CreatePlate(centerX, centerY, textHeight * (0.9 * text.Length + 0.9), textHeight * 1.7, first));
-                    Add(CreateLabel(text, centerX, centerY, textHeight));
+                    Add(CreateFrame(x, y, x + width, y + height, first ? FirstTileColor : TileColor), Mode.DirectShortTerm);
+                    Add(CreatePlate(text, centerX, centerY, textHeight, first), Mode.DirectShortTerm);
+                    Add(CreateLabel(text, centerX, centerY, textHeight), Mode.DirectTopmost);
                     number++;
                 }
             }
@@ -97,8 +98,8 @@ namespace SheetAreaSelector
             double height = settings.AreaHeight;
 
             Add(CreateFrame(settings.MinX, settings.MinY - (settings.Rows - 1) * height,
-                settings.MinX + settings.Columns * width, settings.MaxY, TileColor));
-            Add(CreateFrame(settings.MinX, settings.MinY, settings.MaxX, settings.MaxY, FirstTileColor));
+                settings.MinX + settings.Columns * width, settings.MaxY, TileColor), Mode.DirectShortTerm);
+            Add(CreateFrame(settings.MinX, settings.MinY, settings.MaxX, settings.MaxY, FirstTileColor), Mode.DirectShortTerm);
         }
 
         private static Entity CreateFrame(double x1, double y1, double x2, double y2, int color)
@@ -113,14 +114,14 @@ namespace SheetAreaSelector
             return frame;
         }
 
-        private static Entity CreatePlate(double centerX, double centerY, double width, double height, bool first)
+        // Full block glyphs form the plate, because transients do not draw solid fills in 2D Wireframe
+        private static Entity CreatePlate(string text, double centerX, double centerY, double height, bool first)
         {
-            double x1 = centerX - width / 2;
-            double x2 = centerX + width / 2;
-            double y1 = centerY - height / 2;
-            double y2 = centerY + height / 2;
-
-            var plate = new Solid(new Point3d(x1, y1, 0), new Point3d(x2, y1, 0), new Point3d(x1, y2, 0), new Point3d(x2, y2, 0));
+            var plate = new MText();
+            plate.Location = new Point3d(centerX, centerY, 0);
+            plate.Attachment = AttachmentPoint.MiddleCenter;
+            plate.TextHeight = height;
+            plate.Contents = "{\\fArial|b0|i0|c0|p34;" + new string('\u2588', text.Length + 1) + "}";
             plate.Color = first ? FirstPlateColor : TilePlateColor;
             return plate;
         }
@@ -131,16 +132,15 @@ namespace SheetAreaSelector
             label.Location = new Point3d(centerX, centerY, 0);
             label.Attachment = AttachmentPoint.MiddleCenter;
             label.TextHeight = height;
-            label.Contents = text;
+            label.Contents = "{\\fArial|b1|i0|c0|p34;" + text + "}";
             label.Color = Autodesk.AutoCAD.Colors.Color.FromRgb(0, 0, 0);
             return label;
         }
 
-        private static void Add(Entity entity)
+        private static void Add(Entity entity, Mode mode)
         {
             var manager = Autodesk.AutoCAD.GraphicsInterface.TransientManager.CurrentTransientManager;
-            manager.AddTransient(entity, Autodesk.AutoCAD.GraphicsInterface.TransientDrawingMode.DirectShortTerm,
-                SubDrawingMode, new IntegerCollection());
+            manager.AddTransient(entity, mode, SubDrawingMode, new IntegerCollection());
             Items.Add(entity);
         }
 

@@ -209,6 +209,107 @@ namespace SheetAreaSelector
             }
 
             settings.SetArea(minX, minY, maxX, maxY, doc.Name);
+
+            try
+            {
+                settings.AutoFitNote = AutoFit(doc, settings);
+            }
+            catch (System.Exception ex)
+            {
+                settings.AutoFitNote = null;
+                ed.WriteMessage("\n[Jpegger] Автоподбор не удался: " + ex.Message);
+            }
+            if (settings.AutoFitNote != null)
+                ed.WriteMessage("\n[Jpegger] " + settings.AutoFitNote);
+        }
+
+        private static string AutoFit(Document doc, ExportSettings settings)
+        {
+            Editor ed = doc.Editor;
+            double width = settings.AreaWidth;
+            double height = settings.AreaHeight;
+            var cache = new Dictionary<long, bool>();
+            int checkedCells = 0;
+
+            Func<int, int, bool> hasContent = (row, column) =>
+            {
+                long key = row * 1000L + column;
+                bool value;
+                if (cache.TryGetValue(key, out value)) return value;
+
+                checkedCells++;
+                double x = settings.MinX + column * width;
+                double y = settings.MinY - row * height;
+                double marginX = width * 0.02;
+                double marginY = height * 0.02;
+                PromptSelectionResult selection = ed.SelectWindow(
+                    new Point3d(x + marginX, y + marginY, 0),
+                    new Point3d(x + width - marginX, y + height - marginY, 0));
+                value = selection.Status == PromptStatus.OK && selection.Value.Count > 0;
+                cache[key] = value;
+                return value;
+            };
+
+            if (!hasContent(0, 0))
+                return "Автоподбор: в выбранной области нет объектов, задайте значения вручную.";
+
+            int maxRow = 0;
+            int maxColumn = 0;
+            int found = 0;
+            var visited = new HashSet<long> { 0 };
+            var queue = new Queue<int[]>();
+            queue.Enqueue(new[] { 0, 0 });
+
+            while (queue.Count > 0 && checkedCells < 3000)
+            {
+                int[] cell = queue.Dequeue();
+                found++;
+                maxRow = Math.Max(maxRow, cell[0]);
+                maxColumn = Math.Max(maxColumn, cell[1]);
+
+                int[][] neighbors = { new[] { cell[0], cell[1] + 1 }, new[] { cell[0] + 1, cell[1] } };
+                foreach (int[] next in neighbors)
+                {
+                    if (next[0] >= ExportSettings.MaxCount || next[1] >= ExportSettings.MaxCount) continue;
+                    if (visited.Add(next[0] * 1000L + next[1]) && hasContent(next[0], next[1]))
+                        queue.Enqueue(next);
+                }
+            }
+
+            int columns = maxColumn + 1;
+            int rows = maxRow + 1;
+            settings.Columns = columns;
+            settings.Rows = rows;
+
+            int lastNumber;
+            settings.StartNumber = SuggestStartNumber(settings.OutputFolder, out lastNumber);
+
+            int empty = columns * rows - found;
+            string emptyNote = empty > 0 ? $" (пустых ячеек: {empty})" : string.Empty;
+            string numbering = lastNumber > 0
+                ? $"нумерация с {settings.StartNumber}, в папке уже есть файлы до {lastNumber}.jpg"
+                : $"нумерация с {settings.StartNumber}";
+            return $"Автоподбор: {columns} x {rows}{emptyNote}; {numbering}.";
+        }
+
+        private static int SuggestStartNumber(string folder, out int lastNumber)
+        {
+            lastNumber = 0;
+            try
+            {
+                if (!Directory.Exists(folder)) return 1;
+                foreach (string file in Directory.EnumerateFiles(folder, "*.jpg"))
+                {
+                    int number;
+                    if (int.TryParse(Path.GetFileNameWithoutExtension(file), NumberStyles.None, CultureInfo.InvariantCulture, out number)
+                        && number > lastNumber)
+                        lastNumber = number;
+                }
+            }
+            catch
+            {
+            }
+            return Math.Min(lastNumber + 1, ExportSettings.MaxNumber);
         }
 
         private void Export(Document doc, ExportSettings settings)

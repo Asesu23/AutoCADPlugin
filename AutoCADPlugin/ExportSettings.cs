@@ -30,6 +30,7 @@ namespace SheetAreaSelector
         public double MaxX { get; private set; }
         public double MaxY { get; private set; }
         public string AreaDocument { get; private set; }
+        public string AutoFitNote { get; set; }
 
         public double AreaWidth => MaxX - MinX;
         public double AreaHeight => MaxY - MinY;
@@ -50,6 +51,7 @@ namespace SheetAreaSelector
         {
             HasArea = false;
             AreaDocument = null;
+            AutoFitNote = null;
         }
 
         public void Save()

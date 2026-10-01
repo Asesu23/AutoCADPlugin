@@ -19,6 +19,7 @@ namespace SheetAreaSelector
         private NumericUpDown _rows;
         private NumericUpDown _start;
         private Label _summaryLabel;
+        private Label _noteLabel;
         private TextBox _folderBox;
         private CheckBox _openFolderBox;
         private Button _exportButton;
@@ -119,7 +120,7 @@ namespace SheetAreaSelector
             {
                 Text = "Сетка экспорта",
                 Location = new Point(12, 152),
-                Size = new Size(416, 108)
+                Size = new Size(416, 142)
             };
             _columns = CreateNumber(104, 24, 64, 1, ExportSettings.MaxCount);
             _rows = CreateNumber(280, 24, 64, 1, ExportSettings.MaxCount);
@@ -136,7 +137,14 @@ namespace SheetAreaSelector
             gridGroup.Controls.Add(_rows);
             gridGroup.Controls.Add(CreateCaption("Начать с №:", 12, 54, 88));
             gridGroup.Controls.Add(_start);
+            _noteLabel = new Label
+            {
+                Location = new Point(12, 104),
+                Size = new Size(392, 32),
+                ForeColor = Color.FromArgb(96, 96, 96)
+            };
             gridGroup.Controls.Add(_summaryLabel);
+            gridGroup.Controls.Add(_noteLabel);
             _toolTip.SetToolTip(_columns, "Сколько областей выгрузить вправо (по оси X)");
             _toolTip.SetToolTip(_rows, "Сколько рядов выгрузить вниз (по оси Y)");
             _toolTip.SetToolTip(_start, "Номер первого файла: 1.jpg, 2.jpg и так далее");
@@ -144,7 +152,7 @@ namespace SheetAreaSelector
             var saveGroup = new GroupBox
             {
                 Text = "Сохранение",
-                Location = new Point(12, 268),
+                Location = new Point(12, 302),
                 Size = new Size(416, 88)
             };
             _folderBox = new TextBox
@@ -180,7 +188,7 @@ namespace SheetAreaSelector
 
             var separator = new Label
             {
-                Location = new Point(0, 366),
+                Location = new Point(0, 400),
                 Size = new Size(440, 2),
                 BorderStyle = BorderStyle.Fixed3D
             };
@@ -188,7 +196,7 @@ namespace SheetAreaSelector
             _exportButton = new Button
             {
                 Text = "Экспорт",
-                Location = new Point(200, 378),
+                Location = new Point(200, 412),
                 Size = new Size(130, 34),
                 FlatStyle = FlatStyle.Flat,
                 Font = _primaryFont
@@ -200,7 +208,7 @@ namespace SheetAreaSelector
             var closeButton = new Button
             {
                 Text = "Закрыть",
-                Location = new Point(338, 378),
+                Location = new Point(338, 412),
                 Size = new Size(90, 34)
             };
             closeButton.Click += (s, e) => Close();
@@ -223,7 +231,7 @@ namespace SheetAreaSelector
             CancelButton = closeButton;
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
-            ClientSize = new Size(440, 428);
+            ClientSize = new Size(440, 462);
 
             Shown += (s, e) => ActiveControl = _settings.HasArea ? (Control)_exportButton : _pickButton;
 
@@ -286,6 +294,7 @@ namespace SheetAreaSelector
 
         public void RefreshState()
         {
+            LoadValues();
             UpdateState();
         }
 
@@ -317,6 +326,7 @@ namespace SheetAreaSelector
                 ? string.Format(CultureInfo.CurrentCulture, "Будет создан 1 файл ({0}.jpg)", first)
                 : string.Format(CultureInfo.CurrentCulture, "Будет создано файлов: {0} ({1}.jpg ... {2}.jpg)", total, first, first + total - 1);
 
+            _noteLabel.Text = hasArea ? _settings.AutoFitNote ?? string.Empty : string.Empty;
             _exportButton.Enabled = hasArea;
             StyleExportButton();
         }
