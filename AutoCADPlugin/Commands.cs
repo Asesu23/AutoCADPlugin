@@ -225,32 +225,38 @@ namespace SheetAreaSelector
 
         private static string AutoFit(Document doc, ExportSettings settings)
         {
-            Editor ed = doc.Editor;
+            doc.Editor.WriteMessage("\n[Jpegger] Анализ чертежа...");
+
             double width = settings.AreaWidth;
             double height = settings.AreaHeight;
-            var cache = new Dictionary<long, bool>();
-            int checkedCells = 0;
+            var occupied = new HashSet<long>();
+            Database db = doc.Database;
 
-            Func<int, int, bool> hasContent = (row, column) =>
+            using (Transaction tr = db.TransactionManager.StartTransaction())
             {
-                long key = row * 1000L + column;
-                bool value;
-                if (cache.TryGetValue(key, out value)) return value;
+                Layout layout = (Layout)tr.GetObject(LayoutManager.Current.GetLayoutId(LayoutManager.Current.CurrentLayout), OpenMode.ForRead);
+                var space = (BlockTableRecord)tr.GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
 
-                checkedCells++;
-                double x = settings.MinX + column * width;
-                double y = settings.MinY - row * height;
-                double marginX = width * 0.02;
-                double marginY = height * 0.02;
-                PromptSelectionResult selection = ed.SelectWindow(
-                    new Point3d(x + marginX, y + marginY, 0),
-                    new Point3d(x + width - marginX, y + height - marginY, 0));
-                value = selection.Status == PromptStatus.OK && selection.Value.Count > 0;
-                cache[key] = value;
-                return value;
-            };
+                foreach (ObjectId id in space)
+                {
+                    var entity = tr.GetObject(id, OpenMode.ForRead) as Entity;
+                    if (entity == null) continue;
 
-            if (!hasContent(0, 0))
+                    Extents3d extents;
+                    try { extents = entity.GeometricExtents; }
+                    catch { continue; }
+
+                    double column = Math.Floor(((extents.MinPoint.X + extents.MaxPoint.X) / 2 - settings.MinX) / width);
+                    double row = Math.Floor((settings.MaxY - (extents.MinPoint.Y + extents.MaxPoint.Y) / 2) / height);
+                    if (column < 0 || row < 0 || column >= ExportSettings.MaxCount || row >= ExportSettings.MaxCount) continue;
+
+                    occupied.Add((long)row * 1000L + (long)column);
+                }
+
+                tr.Commit();
+            }
+
+            if (!occupied.Contains(0))
                 return "Автоподбор: в выбранной области нет объектов, задайте значения вручную.";
 
             int maxRow = 0;
@@ -260,7 +266,7 @@ namespace SheetAreaSelector
             var queue = new Queue<int[]>();
             queue.Enqueue(new[] { 0, 0 });
 
-            while (queue.Count > 0 && checkedCells < 3000)
+            while (queue.Count > 0)
             {
                 int[] cell = queue.Dequeue();
                 found++;
@@ -270,8 +276,8 @@ namespace SheetAreaSelector
                 int[][] neighbors = { new[] { cell[0], cell[1] + 1 }, new[] { cell[0] + 1, cell[1] } };
                 foreach (int[] next in neighbors)
                 {
-                    if (next[0] >= ExportSettings.MaxCount || next[1] >= ExportSettings.MaxCount) continue;
-                    if (visited.Add(next[0] * 1000L + next[1]) && hasContent(next[0], next[1]))
+                    long key = next[0] * 1000L + next[1];
+                    if (occupied.Contains(key) && visited.Add(key))
                         queue.Enqueue(next);
                 }
             }

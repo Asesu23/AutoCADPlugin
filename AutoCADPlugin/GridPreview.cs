@@ -71,6 +71,7 @@ namespace SheetAreaSelector
             double width = settings.AreaWidth;
             double height = settings.AreaHeight;
             double textHeight = Math.Min(width, height) * 0.1;
+            double spacing = TintSpacing(height);
             int number = settings.StartNumber;
 
             for (int row = 0; row < settings.Rows; row++)
@@ -84,6 +85,7 @@ namespace SheetAreaSelector
                     double centerX = x + width / 2;
                     double centerY = y + height / 2;
 
+                    Add(CreateTint(x, y, x + width, y + height, first ? FirstTileColor : TileColor, spacing), Mode.DirectShortTerm);
                     Add(CreateFrame(x, y, x + width, y + height, first ? FirstTileColor : TileColor), Mode.DirectShortTerm);
                     Add(CreatePlate(text, centerX, centerY, textHeight, first), Mode.DirectShortTerm);
                     Add(CreateLabel(text, centerX, centerY, textHeight), Mode.DirectTopmost);
@@ -100,6 +102,39 @@ namespace SheetAreaSelector
             Add(CreateFrame(settings.MinX, settings.MinY - (settings.Rows - 1) * height,
                 settings.MinX + settings.Columns * width, settings.MaxY, TileColor), Mode.DirectShortTerm);
             Add(CreateFrame(settings.MinX, settings.MinY, settings.MaxX, settings.MaxY, FirstTileColor), Mode.DirectShortTerm);
+        }
+
+        // Parallel strokes joined into one polyline tint the whole sheet while keeping the drawing visible through the gaps
+        private static Entity CreateTint(double x1, double y1, double x2, double y2, int color, double spacing)
+        {
+            var tint = new Polyline();
+            int index = 0;
+            bool toRight = true;
+            for (double y = y1; y <= y2; y += spacing)
+            {
+                tint.AddVertexAt(index++, new Point2d(toRight ? x1 : x2, y), 0, 0, 0);
+                tint.AddVertexAt(index++, new Point2d(toRight ? x2 : x1, y), 0, 0, 0);
+                toRight = !toRight;
+            }
+            tint.ColorIndex = color;
+            return tint;
+        }
+
+        private static double TintSpacing(double tileHeight)
+        {
+            double pixel = 0;
+            try
+            {
+                double viewSize = Convert.ToDouble(Autodesk.AutoCAD.ApplicationServices.Core.Application.GetSystemVariable("VIEWSIZE"), CultureInfo.InvariantCulture);
+                var screen = (Point2d)Autodesk.AutoCAD.ApplicationServices.Core.Application.GetSystemVariable("SCREENSIZE");
+                if (viewSize > 0 && screen.Y > 0) pixel = viewSize / screen.Y;
+            }
+            catch
+            {
+            }
+
+            double spacing = pixel > 0 ? pixel * 2 : tileHeight / 48;
+            return Math.Min(Math.Max(spacing, tileHeight / 160), tileHeight / 8);
         }
 
         private static Entity CreateFrame(double x1, double y1, double x2, double y2, int color)

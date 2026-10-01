@@ -11,7 +11,7 @@ Jpegger is an AutoCAD plugin that exports a grid of sheet areas from a drawing t
 - Dialog owned by AutoCAD, so it is not a separate window: it stays open while you pan and zoom the drawing and hides only while you pick the area
 - Pick the first area with two corner clicks, the same area size is repeated across the drawing
 - Grid size and the first file number are detected automatically after you pick the area, and can be edited
-- Live preview of the whole export grid with color-coded file numbers drawn in the model before anything is exported
+- Live preview of the whole export grid drawn in the model before anything is exported: every sheet is tinted and carries its file number
 - Batch export along X and Y with a configurable start number (`1.jpg`, `2.jpg`, ...)
 - Portrait or landscape output is chosen from the shape of the selected area
 - Progress in the AutoCAD status bar, optional opening of the output folder when done
@@ -33,7 +33,7 @@ Requirements: Windows x64 and AutoCAD. The plugin is built against the AutoCAD 2
 
 1. Click the **Export** button in the **Jpegger** panel or run the `Jpegger` command. The interface is currently in Russian.
 2. Press `Указать область <`. The dialog hides, click two opposite corners of the first area, then the dialog returns with the area size.
-3. The grid is detected automatically: sheets with content to the right and below the first area are counted, and numbering continues after the highest `N.jpg` already in the output folder. Adjust the values if needed. A preview of every area with its file number appears in the drawing and follows your changes. The dialog stays open, so you can pan and zoom to check it:
+3. The grid is detected automatically: grid cells to the right and below the first area that contain objects are counted (an object belongs to the cell where its center lies), and numbering continues after the highest `N.jpg` already in the output folder. Adjust the values if needed. A preview of every area with its file number appears in the drawing and follows your changes. The dialog stays open, so you can pan and zoom to check it:
 
    | Field | Meaning |
    | --- | --- |
