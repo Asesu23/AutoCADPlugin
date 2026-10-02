@@ -229,7 +229,7 @@ namespace SheetAreaSelector
 
             double width = settings.AreaWidth;
             double height = settings.AreaHeight;
-            var occupied = new HashSet<long>();
+            var counts = new Dictionary<long, int>();
             Database db = doc.Database;
 
             using (Transaction tr = db.TransactionManager.StartTransaction())
@@ -246,18 +246,32 @@ namespace SheetAreaSelector
                     try { extents = entity.GeometricExtents; }
                     catch { continue; }
 
-                    double column = Math.Floor(((extents.MinPoint.X + extents.MaxPoint.X) / 2 - settings.MinX) / width);
-                    double row = Math.Floor((settings.MaxY - (extents.MinPoint.Y + extents.MaxPoint.Y) / 2) / height);
+                    double fx = ((extents.MinPoint.X + extents.MaxPoint.X) / 2 - settings.MinX) / width;
+                    double fy = (settings.MaxY - (extents.MinPoint.Y + extents.MaxPoint.Y) / 2) / height;
+                    double column = Math.Floor(fx);
+                    double row = Math.Floor(fy);
                     if (column < 0 || row < 0 || column >= ExportSettings.MaxCount || row >= ExportSettings.MaxCount) continue;
+                    if (IsNearEdge(fx - column) || IsNearEdge(fy - row)) continue;
 
-                    occupied.Add((long)row * 1000L + (long)column);
+                    long key = (long)row * 1000L + (long)column;
+                    int count;
+                    counts.TryGetValue(key, out count);
+                    counts[key] = count + 1;
                 }
 
                 tr.Commit();
             }
 
-            if (!occupied.Contains(0))
+            int firstCount;
+            if (!counts.TryGetValue(0, out firstCount))
                 return "Автоподбор: в выбранной области нет объектов, задайте значения вручную.";
+
+            int threshold = Math.Max(1, firstCount / 20);
+            var occupied = new HashSet<long>();
+            foreach (KeyValuePair<long, int> cell in counts)
+            {
+                if (cell.Value >= threshold) occupied.Add(cell.Key);
+            }
 
             int maxRow = 0;
             int maxColumn = 0;
@@ -268,12 +282,12 @@ namespace SheetAreaSelector
 
             while (queue.Count > 0)
             {
-                int[] cell = queue.Dequeue();
+                int[] current = queue.Dequeue();
                 found++;
-                maxRow = Math.Max(maxRow, cell[0]);
-                maxColumn = Math.Max(maxColumn, cell[1]);
+                maxRow = Math.Max(maxRow, current[0]);
+                maxColumn = Math.Max(maxColumn, current[1]);
 
-                int[][] neighbors = { new[] { cell[0], cell[1] + 1 }, new[] { cell[0] + 1, cell[1] } };
+                int[][] neighbors = { new[] { current[0], current[1] + 1 }, new[] { current[0] + 1, current[1] } };
                 foreach (int[] next in neighbors)
                 {
                     long key = next[0] * 1000L + next[1];
@@ -296,6 +310,11 @@ namespace SheetAreaSelector
                 ? $"нумерация с {settings.StartNumber}, в папке уже есть файлы до {lastNumber}.jpg"
                 : $"нумерация с {settings.StartNumber}";
             return $"Автоподбор: {columns} x {rows}{emptyNote}; {numbering}.";
+        }
+
+        private static bool IsNearEdge(double fraction)
+        {
+            return fraction < 0.02 || fraction > 0.98;
         }
 
         private static int SuggestStartNumber(string folder, out int lastNumber)
